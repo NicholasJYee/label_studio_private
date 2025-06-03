@@ -1,6 +1,6 @@
 Re-build image:
 
-`podman build -t labelstudio-nginx-ngrok .`
+`podman build -t labelstudio .`
 
 Re-build container:
 
@@ -10,7 +10,7 @@ Re-build container:
   --env-file .env \
   -p 8080:8080 \
   -v "$PWD/data:/home/secureuser/data:rw" \
-  labelstudio-nginx-ngrok
+  labelstudio
 `
 
 ---
@@ -26,3 +26,7 @@ Find public URL (it keeps changing):
 Close container:
 
 `podman stop ls`
+
+Create new superuser:
+
+`podman exec -it ls label-studio createsuperuser`

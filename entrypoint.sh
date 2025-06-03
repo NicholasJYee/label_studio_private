@@ -14,7 +14,12 @@ mkdir -p "$LOGS" "$TMP"/{body,proxy,fastcgi,uwsgi,scgi} \
          "$BASE/.local/share/label-studio"
 
 ###############################################################################
-# 2. minimal nginx (for our use-case only)
+# 2. basic auth setup
+###############################################################################
+htpasswd -bc "$BASE/.htpasswd" admin "$ADMIN_PASSWORD"
+
+###############################################################################
+# 3. minimal nginx (for our use-case only)
 ###############################################################################
 cat > "$CONF" <<NGINX
 worker_processes  1;
@@ -39,7 +44,7 @@ http {
         server_name _;
 
         auth_basic "Label-Studio";
-        auth_basic_user_file /etc/nginx/.htpasswd;
+        auth_basic_user_file $BASE/.htpasswd;
 
         location / {
             proxy_pass              http://127.0.0.1:$LABELSTUDIO_PORT;
@@ -55,7 +60,7 @@ http {
 NGINX
 
 ###############################################################################
-# 3. start / discover ngrok
+# 4. start / discover ngrok
 ###############################################################################
 [[ -n "${NGROK_AUTHTOKEN:-}" ]] && ngrok config add-authtoken "$NGROK_AUTHTOKEN"
 ngrok http $PROXY_PORT > "$LOGS/ngrok.log" 2>&1 &
@@ -71,29 +76,29 @@ done
 echo "➜ CSRF trusted host: $NGROK_URL"
 
 ###############################################################################
-# 4. export environment variables
+# 5. export environment variables
 ###############################################################################
-LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/home/secureuser/data
+LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=$BASE/data
 
 export CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export DJANGO_CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export LABEL_STUDIO_ALLOW_ORIGIN=$NGROK_URL
 export LABEL_STUDIO_DISABLE_LOCAL_FILES_SECURITY=True
 export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=True
+export DISABLE_SIGNUP_WITHOUT_LINK=True
 export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT
 
 echo "• env exported to current shell"
 
-
 ###############################################################################
-# 5. start Label-Studio
+# 6. start Label-Studio
 ###############################################################################
 label-studio start --host 0.0.0.0 --port $LABELSTUDIO_PORT &
 for _ in {1..20}; do nc -z 127.0.0.1 $LABELSTUDIO_PORT && break; sleep 1; done
 echo "➜ Label-Studio ready on :$LABELSTUDIO_PORT"
 
 ###############################################################################
-# 6. launch nginx in foreground
+# 7. launch nginx in foreground
 ###############################################################################
 echo "➜ nginx ready on $NGROK_URL"
 exec nginx -c "$CONF" -g 'daemon off;'
