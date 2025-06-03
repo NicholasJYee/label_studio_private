@@ -2,12 +2,6 @@
 set -euo pipefail
 
 ###############################################################################
-# 0. optional user-supplied variables
-###############################################################################
-ENV_FILE="${ENV_FILE:-/home/secureuser/.env}"
-[[ -f "$ENV_FILE" ]] && { echo "› Loading $ENV_FILE"; source "$ENV_FILE"; }
-
-###############################################################################
 # 1. constants
 ###############################################################################
 LABELSTUDIO_PORT=8081
@@ -52,7 +46,7 @@ http {
             proxy_set_header Host               \$host;
             proxy_set_header X-Real-IP          \$remote_addr;
             proxy_set_header X-Forwarded-For    \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto  https;          # <-- always https
+            proxy_set_header X-Forwarded-Proto  https;
             proxy_set_header Origin             \$http_origin;
             proxy_set_header Referer            \$http_referer;
         }
@@ -77,20 +71,19 @@ done
 echo "➜ CSRF trusted host: $NGROK_URL"
 
 ###############################################################################
-# 4. write + export **both** variable names
+# 4. export environment variables
 ###############################################################################
-cat > "$BASE/.local/share/label-studio/.env" <<EOF
-# auto-generated
-CSRF_TRUSTED_ORIGINS=$NGROK_URL
-DJANGO_CSRF_TRUSTED_ORIGINS=$NGROK_URL
-LABEL_STUDIO_ALLOW_ORIGIN=$NGROK_URL
-LABEL_STUDIO_DISABLE_LOCAL_FILES_SECURITY=True
-EOF
+LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/home/secureuser/data
 
 export CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export DJANGO_CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export LABEL_STUDIO_ALLOW_ORIGIN=$NGROK_URL
+export LABEL_STUDIO_DISABLE_LOCAL_FILES_SECURITY=True
+export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=True
+export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT
+
 echo "• env exported to current shell"
+
 
 ###############################################################################
 # 5. start Label-Studio
@@ -102,5 +95,5 @@ echo "➜ Label-Studio ready on :$LABELSTUDIO_PORT"
 ###############################################################################
 # 6. launch nginx in foreground
 ###############################################################################
-echo "➜ nginx ready on :$PROXY_PORT"
+echo "➜ nginx ready on $NGROK_URL"
 exec nginx -c "$CONF" -g 'daemon off;'

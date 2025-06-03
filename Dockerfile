@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir label-studio
 RUN useradd -m secureuser
 COPY entrypoint.sh /home/secureuser/entrypoint.sh
 RUN chmod +x /home/secureuser/entrypoint.sh && \
-    htpasswd -bc /etc/nginx/.htpasswd admin idontknowthepasswordfortheadminaccount
+    htpasswd -bc /etc/nginx/.htpasswd admin idontknowthepasswordtotheadminaccount
 
 USER secureuser
 WORKDIR /home/secureuser

@@ -5,11 +5,11 @@ Re-build image:
 Re-build container:
 
 `podman run -d \
-  --replace
-  --d
-  --name labelstudio-nginx-ngrok \
+  --replace \
+  --name ls \
+  --env-file .env \
   -p 8080:8080 \
-  -v "$PWD/.env:/home/secureuser/.env:ro" \
+  -v "$PWD/data:/home/secureuser/data:rw" \
   labelstudio-nginx-ngrok
 `
 
@@ -17,12 +17,12 @@ Re-build container:
 
 Restart container:
 
-`podman start labelstudio-nginx-ngrok`
+`podman start ls`
 
 Find public URL (it keeps changing):
 
-`podman logs -f labelstudio-nginx-ngrok`
+`podman logs ls`
 
 Close container:
 
-`podman stop labelstudio-nginx-ngrok`
+`podman stop ls`
