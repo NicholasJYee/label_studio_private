@@ -19,7 +19,13 @@ In other words, you can keep your data on a private computer and access it from 
 
 ## Environment Setup
 
-Create a `.env` file in the project root with the following variables:
+Create the data directory and .env file:
+```bash
+mkdir -p data
+touch .env
+```
+
+Update the .env file with the following variables:
 
 ```bash
 # Label Studio admin credentials
