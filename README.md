@@ -1,10 +1,11 @@
 # Label Studio
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/label-studio)
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/label-studio-private)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
 This project provides a free, secure, containerized setup of Label Studio with NGINX reverse proxy and ngrok tunneling for public access. It's designed for secure data labeling workflows with proper authentication and HTTPS support.
 
-In other words, you can keep your data on a private computer and access it from anywhere with a public URL.
+> This project is a privacy-focused fork of [Label Studio](https://github.com/HumanSignal/label-studio), a multi-type data labeling and annotation tool with standardized output format.
 
 ## Privacy-Preserving Architecture
 
@@ -102,7 +103,7 @@ podman run -d \
 - Podman/Docker: container is isolated from the host
 - Local Storage: all data remains on the host machine
 - Disabled Exports: bulk download functionality is disabled
-- TLS Encryption: all traffic is encrypted from the client to the container’s NGINX proxy
+- TLS Encryption: all traffic is encrypted from the client to the container's NGINX proxy
 
 ### File Storage
 
@@ -126,3 +127,8 @@ Contributions are welcome! Please feel free to submit a pull request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built on top of [Label Studio](https://github.com/HumanSignal/label-studio) by HumanSignal
+- Original Label Studio is licensed under the Apache 2.0 License © Heartex. 2020-2025
