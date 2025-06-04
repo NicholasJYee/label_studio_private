@@ -2,31 +2,46 @@
 set -euo pipefail
 
 ###############################################################################
-# 1. constants
+# 0. Load secrets from /home/secureuser/.env (read-only mount expected)
+###############################################################################
+BASE=/home/secureuser
+ENV_FILE="$BASE/.env"
+if [[ -f "$ENV_FILE" ]]; then
+  set -o allexport
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  set +o allexport
+fi
+
+: "${LS_ADMIN_EMAIL:?LS_ADMIN_EMAIL not set}"
+: "${LS_ADMIN_PASSWORD:?LS_ADMIN_PASSWORD not set}"
+
+###############################################################################
+# 1. Constants
 ###############################################################################
 LABELSTUDIO_PORT=8081
 PROXY_PORT=8080
-BASE=/home/secureuser
-
 CONF="$BASE/nginx.conf"
-LOGS="$BASE/logs"; TMP="$BASE/tmp"
+LOGS="$BASE/logs"
+TMP="$BASE/tmp"
+
 mkdir -p "$LOGS" "$TMP"/{body,proxy,fastcgi,uwsgi,scgi} \
          "$BASE/.local/share/label-studio"
 
 ###############################################################################
-# 2. basic auth setup
+# 2. Basic-auth for NGINX reverse proxy
 ###############################################################################
 htpasswd -bc "$BASE/.htpasswd" admin "$ADMIN_PASSWORD"
 
 ###############################################################################
-# 3. minimal nginx (for our use-case only)
+# 3. Minimal NGINX configuration
 ###############################################################################
-cat > "$CONF" <<NGINX
+cat >"$CONF" <<NGINX
 worker_processes  1;
 error_log $LOGS/error.log;
 pid        $BASE/nginx.pid;
 
-events { worker_connections  1024; }
+events { worker_connections 1024; }
 
 http {
     log_format origin '\$remote_addr [\$time_local] "\$request" \$status '
@@ -48,57 +63,56 @@ http {
 
         location / {
             proxy_pass              http://127.0.0.1:$LABELSTUDIO_PORT;
-            proxy_set_header Host               \$host;
-            proxy_set_header X-Real-IP          \$remote_addr;
-            proxy_set_header X-Forwarded-For    \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto  https;
-            proxy_set_header Origin             \$http_origin;
-            proxy_set_header Referer            \$http_referer;
+            proxy_set_header Host              \$host;
+            proxy_set_header X-Real-IP         \$remote_addr;
+            proxy_set_header X-Forwarded-For   \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header Origin            \$http_origin;
+            proxy_set_header Referer           \$http_referer;
         }
     }
 }
 NGINX
 
 ###############################################################################
-# 4. start / discover ngrok
+# 4. Start (or reuse) ngrok tunnel
 ###############################################################################
 [[ -n "${NGROK_AUTHTOKEN:-}" ]] && ngrok config add-authtoken "$NGROK_AUTHTOKEN"
-ngrok http $PROXY_PORT > "$LOGS/ngrok.log" 2>&1 &
+ngrok http $PROXY_PORT >"$LOGS/ngrok.log" 2>&1 &
 echo "• waiting for ngrok…"
 for _ in {1..15}; do
   NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels \
-              | jq -r '.tunnels[]?|select(.proto=="https")|.public_url' || true)
+              | jq -r '.tunnels[]? | select(.proto=="https") | .public_url' || true)
   [[ -n "$NGROK_URL" ]] && break
   sleep 1
 done
 [[ -z "$NGROK_URL" ]] && { echo "✗ ngrok tunnel not found"; exit 1; }
-
 echo "➜ CSRF trusted host: $NGROK_URL"
 
 ###############################################################################
-# 5. export environment variables
+# 5. Runtime environment (security + local-files)
 ###############################################################################
-LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=$BASE/data
-
+export LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true   # lock sign-up page
+export DISABLE_SIGNUP_WITHOUT_LINK=True                # legacy key, for safety
+export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT="$BASE/data"
 export CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export DJANGO_CSRF_TRUSTED_ORIGINS=$NGROK_URL
 export LABEL_STUDIO_ALLOW_ORIGIN=$NGROK_URL
-export LABEL_STUDIO_DISABLE_LOCAL_FILES_SECURITY=True
-export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=True
-export DISABLE_SIGNUP_WITHOUT_LINK=False
-export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT
-
-echo "• env exported to current shell"
+echo "• environment exported"
 
 ###############################################################################
-# 6. start Label-Studio
+# 6. Launch Label Studio with pre-created admin account
 ###############################################################################
-label-studio start --host 0.0.0.0 --port $LABELSTUDIO_PORT &
+label-studio start --host 0.0.0.0 --port $LABELSTUDIO_PORT \
+                   --username "$LS_ADMIN_EMAIL" \
+                   --password "$LS_ADMIN_PASSWORD" \
+                   --no-browser &
 for _ in {1..20}; do nc -z 127.0.0.1 $LABELSTUDIO_PORT && break; sleep 1; done
 echo "➜ Label-Studio ready on :$LABELSTUDIO_PORT"
 
 ###############################################################################
-# 7. launch nginx in foreground
+# 7. Foreground NGINX
 ###############################################################################
 echo "➜ nginx ready on $NGROK_URL"
 exec nginx -c "$CONF" -g 'daemon off;'
