@@ -1,8 +1,18 @@
-# Label Studio with NGINX and ngrok
+# Label Studio
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/label-studio)
 
-This project provides a free secure, containerized setup of Label Studio with NGINX reverse proxy and ngrok tunneling for public access. It's designed for secure data labeling workflows with proper authentication and HTTPS support.
+
+This project provides a free, secure, containerized setup of Label Studio with NGINX reverse proxy and ngrok tunneling for public access. It's designed for secure data labeling workflows with proper authentication and HTTPS support.
 
 In other words, you can keep your data on a private computer and access it from anywhere with a public URL.
+
+## Privacy-Preserving Architecture
+
+This Label Studio setup is designed for installation on a single, protected workstation where all source images and annotations remain resident on the local disk. Nothing is synchronized to external cloud storage (unless explicitly configured). Authenticated collaborators reach the application through a short-lived, TLS-encrypted ngrok tunnel, so the browser session is streamed, not copied. Bulk file download endpoints are disabled, preventing wholesale export of sensitive data.
+
+Consequently, apart from ad-hoc screen captures performed by end-users, protected data never leaves the host computer, satisfying strict data-sovereignty requirements while still permitting global, permission-gated access to the labeling interface.
+
+No liability is assumed for any data loss or security breaches. Use at your own risk.
 
 ## Features
 
@@ -11,6 +21,9 @@ In other words, you can keep your data on a private computer and access it from 
 - 📦 Containerized deployment using Docker/Podman
 - 📁 Local file serving support
 - 🛡️ CSRF protection and secure origins
+- 🔐 Local-first architecture
+- 🚫 Disabled bulk data export functionality (annotations can be exported)
+- 🔄 Short-lived, encrypted tunnels for secure access
 
 ## Prerequisites
 
@@ -68,7 +81,7 @@ podman run -d \
   podman stop ls
   ```
 
-- **View logs (to find the ngrokpublic URL):**
+- **View logs (to find the ngrok public URL):**
   ```bash
   podman logs ls
   ```
@@ -81,17 +94,19 @@ podman run -d \
 4. The URL changes each time the container is restarted
 5. Local storage is available at `./data` (image regex: `^.*\.(jpg|JPG|jpeg|JPEG|png|PNG)$` + click checkbox)
 
-## Layers of security
+## Layers of Security
+
 - ngrok: new HTTPS tunnel is created each time the container is restarted
 - NGINX: only permit HTTPS requests from the dynamically generated ngrok URL with basic authentication
 - Label Studio: account registration only via invitation link (no public signup)
 - Podman/Docker: container is isolated from the host
-
+- Local Storage: all data remains on the host machine
+- Disabled Exports: bulk download functionality is disabled
+- TLS Encryption: all traffic is encrypted from the client to the container’s NGINX proxy
 
 ### File Storage
 
 The container mounts a local `./data` directory for file storage.
-
 
 ## Troubleshooting
 
@@ -104,5 +119,10 @@ The container mounts a local `./data` directory for file storage.
 3. Verify that port 8080 is not in use by another application
 4. Check that the data directory has proper permissions
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a pull request.
+
 ## License
+
 This project is licensed under the MIT License - see the LICENSE file for details.
