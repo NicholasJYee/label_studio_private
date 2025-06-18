@@ -37,7 +37,7 @@ No liability is assumed for any data loss or security breaches. Use at your own 
 
 Create the data directory and .env file:
 ```bash
-mkdir -p data
+mkdir data
 touch .env
 ```
 
@@ -48,9 +48,14 @@ Update the .env file with the following variables:
 LS_ADMIN_EMAIL=your-email@example.com
 LS_ADMIN_PASSWORD=your-secure-password
 
-# ngrok configuration (optional)
+# ngrok configuration
 NGROK_AUTHTOKEN=your-ngrok-authtoken
+
+# nginx configuration
+ADMIN_PASSWORD=your-admin-password-for-nginx
 ```
+
+Place your data into /data.
 
 ## Building and Running
 
