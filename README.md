@@ -37,7 +37,9 @@ No liability is assumed for any data loss or security breaches. Use at your own 
 
 Create the data directory and .env file:
 ```bash
-mkdir data
+mkdir -p data/logs
+touch data/logs/access.log data/logs/fail2ban.log data/logs/ngrok.log
+chmod 666 ./data/logs/*.log
 touch .env
 ```
 

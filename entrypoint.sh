@@ -22,11 +22,12 @@ fi
 ###############################################################################
 LABELSTUDIO_PORT=8081
 PROXY_PORT=8080
-CONF="$BASE/nginx.conf"
-LOGS="$BASE/logs"
+LOGS="$BASE/data/logs"
+LOGFILE="$LOGS/access.log"
+FAIL2BAN_LOG="$LOGS/fail2ban.log"
 TMP="$BASE/tmp"
 
-mkdir -p "$LOGS" "$TMP"/{body,proxy,fastcgi,uwsgi,scgi} \
+mkdir -p "$TMP"/{body,proxy,fastcgi,uwsgi,scgi} \
          "$BASE/.local/share/label-studio"
 
 ###############################################################################
@@ -37,7 +38,7 @@ htpasswd -bc "$BASE/.htpasswd" admin "$ADMIN_PASSWORD"
 ###############################################################################
 # 3. Minimal NGINX configuration
 ###############################################################################
-cat >"$CONF" <<NGINX
+cat >"$BASE/nginx.conf" <<NGINX
 worker_processes  1;
 error_log $LOGS/error.log;
 pid        $BASE/nginx.pid;
@@ -48,7 +49,7 @@ http {
     server_tokens off;
     log_format origin '\$remote_addr [\$time_local] "\$request" \$status '
                       '"\$http_referer" "\$http_user_agent" "\$http_origin"';
-    access_log $LOGS/access.log origin;
+    access_log $LOGFILE origin;
 
     client_body_temp_path $TMP/body;
     proxy_temp_path       $TMP/proxy;
@@ -77,8 +78,6 @@ http {
               frame-src 'self';
               object-src 'none';
             ";
-
-
 
             proxy_pass              http://127.0.0.1:$LABELSTUDIO_PORT;
             proxy_set_header Host              \$host;
@@ -130,7 +129,10 @@ for _ in {1..20}; do nc -z 127.0.0.1 $LABELSTUDIO_PORT && break; sleep 1; done
 echo "➜ Label-Studio ready on :$LABELSTUDIO_PORT"
 
 ###############################################################################
-# 7. Foreground NGINX
+# 7. Start Fail2Ban and NGINX
 ###############################################################################
+fail2ban-client -x start
+tail -F "$FAIL2BAN_LOG" &
+
 echo "➜ nginx ready on $NGROK_URL"
-exec nginx -c "$CONF" -g 'daemon off;'
+exec nginx -c "$BASE/nginx.conf" -g 'daemon off;'
