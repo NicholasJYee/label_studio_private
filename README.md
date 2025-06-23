@@ -100,7 +100,7 @@ podman run -d \
 2. Access is protected by basic authentication (username: `admin`, password: from `.env`)
 3. The dynamically generated public URL is available in the container logs (ngrok)
 4. The URL changes each time the container is restarted
-5. Local storage is available at `./data` (image regex: `^.*\.(jpg|JPG|jpeg|JPEG|png|PNG)$` + click checkbox)
+5. Local storage is available in the container at `/home/secureuser/data` (image regex: `^.*\.(jpg|JPG|jpeg|JPEG|png|PNG)$` + click checkbox)
 
 ## Layers of Security
 

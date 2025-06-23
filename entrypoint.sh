@@ -45,6 +45,7 @@ pid        $BASE/nginx.pid;
 events { worker_connections 1024; }
 
 http {
+    server_tokens off;
     log_format origin '\$remote_addr [\$time_local] "\$request" \$status '
                       '"\$http_referer" "\$http_user_agent" "\$http_origin"';
     access_log $LOGS/access.log origin;
@@ -63,6 +64,22 @@ http {
         auth_basic_user_file $BASE/.htpasswd;
 
         location / {
+            add_header X-Content-Type-Options nosniff;
+            add_header X-Frame-Options DENY;
+            add_header X-XSS-Protection "1; mode=block";
+            add_header Content-Security-Policy "
+              default-src 'self' https:;
+              script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://browser.sentry-cdn.com;
+              style-src 'self' 'unsafe-inline' https:;
+              img-src 'self' data: blob: https:;
+              connect-src 'self' ws: wss: https:;
+              font-src 'self' data: https:;
+              frame-src 'self';
+              object-src 'none';
+            ";
+
+
+
             proxy_pass              http://127.0.0.1:$LABELSTUDIO_PORT;
             proxy_set_header Host              \$host;
             proxy_set_header X-Real-IP         \$remote_addr;
@@ -93,8 +110,8 @@ echo "➜ CSRF trusted host: $NGROK_URL"
 ###############################################################################
 # 5. Runtime environment (security + local-files)
 ###############################################################################
-export LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true   # lock sign-up page
-export DISABLE_SIGNUP_WITHOUT_LINK=True                # legacy key, for safety
+export LABEL_STUDIO_DISABLE_SIGNUP_WITHOUT_LINK=true
+export DISABLE_SIGNUP_WITHOUT_LINK=True
 export LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
 export LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT="$BASE/data"
 export CSRF_TRUSTED_ORIGINS=$NGROK_URL
