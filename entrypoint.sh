@@ -16,6 +16,7 @@ fi
 : "${LS_ADMIN_EMAIL:?LS_ADMIN_EMAIL not set}"
 : "${LS_ADMIN_PASSWORD:?LS_ADMIN_PASSWORD not set}"
 : "${ADMIN_PASSWORD:?ADMIN_PASSWORD not set}"
+: "${NGROK_AUTHTOKEN:?NGROK_AUTHTOKEN not set}"
 
 ###############################################################################
 # 1. Constants & directories
